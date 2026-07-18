@@ -1,0 +1,68 @@
+# hivetool
+
+PlayHive（旧 Hivemc）公式APIから戦績を取得し、ターミナル上に `rich` で美しく表示するCLIツール。
+
+## コマンド
+
+- `hivetool stats <player> [gamemode]` — 指定プレイヤーの戦績を表示（KDR・勝率などの計算値付き）。ゲームモード省略可（お気に入り or メニューで選択）
+- `hivetool watch <player> [gamemode]` — 120秒ごとに自動更新し、前回からの差分を表示（緑=増加、赤=減少）
+- `hivetool multiwatch [gamemode]` — 2〜4枠を同時視聴。各枠で「プレイヤー名 / `top`(世界1位) / 空Enter(スキップ)」をCUIで選択
+- `hivetool add <player>` — プレイヤー名とお気に入りゲームモードを `~/.hivetool/config.json` に保存
+- `hivetool list` — 保存済みプレイヤーとお気に入りモードを表示
+
+## ゲームモード
+
+`bed`(BedWars) / `sky`(SkyWars) / `bridge` / `hide`(BlockHide) / `dr`(DeathRun) /
+`sg`(SurvivalGames) / `ctf`(Capture The Flag) / `grav`(Gravity) / `murder` /
+`drop` / `ground`(Ground War) / `party`(Party Games) / `wars`(Wars)
+
+エイリアス: `bedwars`→`bed`, `skywars`→`sky`, `blockhide`→`hide`, `deathrun`→`dr`,
+`survivalgames`→`sg`, `gravity`→`grav` など。
+
+## セットアップ
+
+```bash
+bash install.sh
+```
+
+上記で pipx 経由でインストールされ、シェルの設定ファイル（`.zshrc`/`.bashrc`）への PATH 登録も確認付きで行われます。
+手動で行う場合:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+## 実APIについて
+
+- エンドポイント: `https://api.playhive.com`（旧 `api.hivemc.com` は廃止）
+- 統計: `GET /v0/game/all/{game}/{UUID}`（プレイヤー名は `/v0/player/search/{partial}` でUUIDに解決）
+- リーダーボード: `GET /v0/game/leaderboard/{game}`
+
+### モック / 実API の切替
+
+環境変数で切り替え（コード変更不要）:
+
+```bash
+HIVETOOL_MOCK=1  python -m hivetool.cli stats Notch bed   # モック（デフォルト・オフライン可）
+HIVETOOL_MOCK=0  python -m hivetool.cli stats Notch bed   # 実API
+```
+
+### レート制限に注意
+
+PlayHive API は「ゲーム + プレイヤー」の組み合わせごとにレート制限があります。
+短時間に同じ組み合わせへ連続アクセスすると `429 Too Many Attempts` になり、
+しばらく利用できなくなります。通常の使い方（人が `stats` を叩く程度）では問題ありませんが、
+スクリプト等で連続アクセスする際は間隔を空けてください。
+
+## 実フィールド名（確認済み）
+
+各ゲームの生フィールド名は `hivetool/api.py` の `GAME_FIELDS` に定義。
+共通: `kills` / `deaths` / `victories` / `played` / `xp`。
+モード別例: `beds_destroyed`(bed), `murders`(murder), `goals`(bridge),
+`flags_captured`(ctf), `maps_completed`(grav) など。
+
+## ライセンス
+
+MIT

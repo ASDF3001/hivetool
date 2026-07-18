@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import shutil
+import subprocess
 import time
 
 import click
@@ -23,6 +26,55 @@ from .render import console, render_stats
 client = HiveAPIClient()
 err = Console(stderr=True)
 
+# 起動時に上書きしたくない依存ライブラリ
+_REQUIRED_LIBS = ("click", "rich", "requests")
+
+
+def _check_libs() -> None:
+    """必須ライブラリが import できるか確認し、欠けていれば案内。"""
+    missing = []
+    for lib in _REQUIRED_LIBS:
+        try:
+            __import__(lib)
+        except ImportError:
+            missing.append(lib)
+    if missing:
+        err.print(
+            f"[red]必須ライブラリが足りません: {', '.join(missing)}[/]\n"
+            "[yellow]pip install -r requirements.txt を実行してください。[/]"
+        )
+        raise SystemExit(1)
+
+
+def _maybe_self_update() -> None:
+    """起動時に git pull で自己更新（未コミット変更があればスキップ）。"""
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    git = shutil.which("git")
+    if not git:
+        return
+    if not os.path.isdir(os.path.join(repo, ".git")):
+        return
+    # 未コミット変更があれば上書きを避ける
+    try:
+        status = subprocess.run(
+            [git, "-C", repo, "status", "--porcelain"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return
+    if status.stdout.strip():
+        err.print("[dim]未コミットの変更があるため自動更新をスキップしました。[/]")
+        return
+    try:
+        result = subprocess.run(
+            [git, "-C", repo, "pull", "--ff-only"],
+            capture_output=True, text=True, timeout=30,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return
+    if result.returncode == 0 and "Already up to date" not in result.stdout:
+        err.print("[dim]更新を取得しました（次回起動から反映）。[/]")
+
 
 def _resolve_game(gamemode: str | None) -> str:
     """ゲームモードを解決。未指定/未知ならメニューで選ばせる。"""
@@ -43,6 +95,8 @@ def _resolve_game(gamemode: str | None) -> str:
 @click.version_option()
 def main() -> None:
     """Hivemc 戦績表示CLIツール。"""
+    _check_libs()
+    _maybe_self_update()
 
 
 @main.command()
