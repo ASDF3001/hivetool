@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import time
+from datetime import datetime
 
 import click
 from rich.columns import Columns
@@ -19,6 +20,8 @@ from .config import (
     add_player,
     get_favorite_game,
     list_players,
+    load_history,
+    save_history_entry,
     set_favorite_game,
 )
 from .prompt import select_game_mode, select_player_slot
@@ -178,6 +181,7 @@ def watch(player: str, gamemode: str | None, interval: int) -> None:
                     time.sleep(interval)
                     continue
                 live.update(render_stats(cur, prev, mock=USE_MOCK))
+                save_history_entry(player, token, cur.fields())
                 prev = cur
                 time.sleep(interval)
     except KeyboardInterrupt:
@@ -208,6 +212,45 @@ def list_cmd() -> None:
         err.print(f"- {p}")
     if fav:
         err.print(f"お気に入りモード: {fav}")
+
+
+@main.command(name="history")
+@click.argument("player")
+@click.argument("gamemode", required=False)
+@click.option("--limit", default=10, show_default=True, help="表示する直近エントリ数。")
+def history_cmd(player: str, gamemode: str | None, limit: int) -> None:
+    """watch / multiwatch のポール履歴を表示する（いつ・何が増えたか）。
+
+    PLAYER: プレイヤー名またはUUID
+    GAMEMODE: 省略可（bed/sky/bridge 等）。
+    """
+    try:
+        token = _resolve_game(gamemode)
+    except HiveAPIError as e:
+        err.print(f"[red]{e}[/]")
+        raise SystemExit(1)
+    entries = load_history(player, token, limit=limit)
+    if not entries:
+        err.print(f"[dim]{player} ({token}) の履歴がありません。[/]")
+        return
+    err.print(f"[bold]{player} — {token} の直近 {len(entries)} 件[/]")
+    prev: dict[str, int] | None = None
+    for e in reversed(entries):
+        ts = e.get("ts", 0)
+        when = datetime.fromtimestamp(ts).strftime("%m-%d %H:%M")
+        stats = e.get("stats", {})
+        line = f"[dim]{when}[/]"
+        if prev:
+            deltas = []
+            for label, val in stats.items():
+                d = val - prev.get(label, val)
+                if d != 0:
+                    color = "green" if d > 0 else "red"
+                    deltas.append(f"[{color}]{label} {d:+,}[/{color}]")
+            if deltas:
+                line += "  " + "  ".join(deltas)
+        err.print(line)
+        prev = stats
 
 
 @main.command()
@@ -326,6 +369,7 @@ def multiwatch(gamemode: str | None, interval: int, slots: int) -> None:
                         continue
                     prev = prev_map.get(ident)
                     stats_list.append(render_stats(cur, prev, mock=USE_MOCK))
+                    save_history_entry(name, token, cur.fields())
                     prev_map[ident] = cur
                 live.update(Columns(stats_list, equal=True, column_first=False))
                 time.sleep(interval)

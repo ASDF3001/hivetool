@@ -74,6 +74,8 @@ def render_stats(stats: PlayerStats, diff: PlayerStats | None = None, mock: bool
     title = f"[bold]{stats.player}[/] — {GAME_LABELS.get(stats.game.lower(), stats.game.upper())}"
     if mock:
         title += " [dim yellow][MOCK][/]"
+    if getattr(stats, "cached", False):
+        title += " [dim cyan][CACHE][/]"
     footer = f"[dim]取得: {datetime.now().strftime('%H:%M:%S')}[/]"
 
     if diff is not None:

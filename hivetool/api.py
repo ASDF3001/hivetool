@@ -14,12 +14,48 @@ import os
 import random
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import requests
 from rich.console import Console
 
 err_console = Console(stderr=True)
+
+# --- cache layer (mitigates PlayHive per-(game,player) rate limits) ---
+CACHE_DIR = Path.home() / ".hivetool" / "cache"
+CACHE_TTL = 300  # seconds; refreshed if older than this
+
+
+def _cache_path(game: str, uuid: str) -> Path:
+    d = CACHE_DIR / game
+    return d / f"{uuid}.json"
+
+
+def _cache_get(game: str, uuid: str) -> dict | None:
+    p = _cache_path(game, uuid)
+    if not p.exists():
+        return None
+    try:
+        age = time.time() - p.stat().st_mtime
+        if age > CACHE_TTL:
+            return None
+        import json
+        with p.open(encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def _cache_set(game: str, uuid: str, data: dict) -> None:
+    try:
+        d = CACHE_DIR / game
+        d.mkdir(parents=True, exist_ok=True)
+        import json
+        with (d / f"{uuid}.json").open("w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+    except OSError:
+        pass
 
 # 実APIが使える環境では HIVETOOL_MOCK=0 にする（コード変更不要）。
 USE_MOCK = os.environ.get("HIVETOOL_MOCK", "1") != "0"
@@ -221,6 +257,7 @@ class PlayerStats:
     games_played: int = 0
     points: int = 0
     extra: dict[str, int] = field(default_factory=dict)
+    cached: bool = False
 
     @property
     def kdr(self) -> float:
@@ -260,8 +297,15 @@ class HiveAPIClient:
         token = resolve_token(game) or game.lower()
         if USE_MOCK:
             raw = self._mock_stats(player, token)
-        else:
-            raw = self._fetch_real(player, token)
+            return self._parse(raw, player, token)
+        # real API: serve from cache if fresh, mark cached when served
+        uuid = self._resolve_uuid(player)
+        cached = _cache_get(token, uuid)
+        if cached:
+            stats = self._parse(cached, player, token)
+            stats.cached = True
+            return stats
+        raw = self._fetch_real(player, token)
         return self._parse(raw, player, token)
 
     # --- 実API（PlayHive） ---
@@ -326,6 +370,10 @@ class HiveAPIClient:
 
     def _fetch_real(self, player: str, game: str) -> dict[str, Any]:
         uuid = self._resolve_uuid(player)
+        # cache: return fresh-enough stored data, skip rate limit
+        cached = _cache_get(game, uuid)
+        if cached:
+            return cached
         url = f"{BASE_URL}/v0/game/all/{game}/{uuid}"
         resp = self._get(url)
         if resp.status_code == 404:
@@ -335,6 +383,7 @@ class HiveAPIClient:
         # 未プレイ等で空リストが返る場合は「データなし」とする
         if not isinstance(data, dict) or not data:
             raise HiveAPIError(f"プレイヤー '{player}' の '{game}' のデータがありません（未プレイ？）。")
+        _cache_set(game, uuid, data)
         return data
 
     def _parse(self, raw: dict[str, Any], player: str, game: str) -> PlayerStats:
@@ -355,6 +404,7 @@ class HiveAPIClient:
             games_played=raw.get("played", 0) or 0,
             points=raw.get("xp", 0) or 0,
             extra=extra,
+            cached=False,
         )
 
     # --- モック（開発・オフライン用） ---

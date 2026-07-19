@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import Any
 
 CONFIG_DIR = Path.home() / ".hivetool"
 CONFIG_FILE = CONFIG_DIR / "config.json"
+HISTORY_DIR = CONFIG_DIR / "history"
 
 
 def _ensure_dir() -> None:
@@ -59,3 +61,35 @@ def set_favorite_game(token: str) -> None:
     data = load_config()
     data["favorite_game"] = token
     save_config(data)
+
+
+# --- セッション履歴（watch / multiwatch のポール記録） ---
+
+def save_history_entry(player: str, game: str, stats: dict[str, Any]) -> None:
+    """1ポールの結果を history/<player>_<game>_<timestamp>.json に追記。"""
+    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    ts = int(time.time())
+    safe = f"{player}_{game}".replace("/", "_").replace("\\", "_")
+    path = HISTORY_DIR / f"{safe}_{ts}.json"
+    entry = {"player": player, "game": game, "ts": ts, "stats": stats}
+    try:
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(entry, f, ensure_ascii=False, indent=2)
+    except OSError:
+        pass
+
+
+def load_history(player: str, game: str, limit: int = 50) -> list[dict[str, Any]]:
+    """直近の履歴エントリ（新しい順）を返す。ファイル名の ts でソート。"""
+    if not HISTORY_DIR.exists():
+        return []
+    safe = f"{player}_{game}".replace("/", "_").replace("\\", "_")
+    entries = []
+    for p in HISTORY_DIR.glob(f"{safe}_*.json"):
+        try:
+            with p.open(encoding="utf-8") as f:
+                entries.append(json.load(f))
+        except (OSError, ValueError):
+            continue
+    entries.sort(key=lambda e: e.get("ts", 0), reverse=True)
+    return entries[:limit]
