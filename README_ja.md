@@ -47,6 +47,8 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 内部で python → pipx を導入し、`pipx install` で hivetool を入れます。
 pipx の場所（ユーザー Path）への登録は確認付きで行われます。
 
+> 注意: `install.ps1` は Linux/macOS 環境では未検証です。Windows で動作確認が必要な場合は issue で報告してください。
+
 ### すでに古い版が入っている場合（アップデート）
 
 `hivetool update` コマンドは **v0.1.0 以降** で追加されました。それより古い版には存在しないため、以下のいずれかで最新を持ってきてください。

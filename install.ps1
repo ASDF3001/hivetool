@@ -1,72 +1,72 @@
-# hivetool インストーラー（Windows / PowerShell）
-# 使い方:  powershell -ExecutionPolicy Bypass -File install.ps1
+# hivetool installer (Windows / PowerShell)
+# Usage:  powershell -ExecutionPolicy Bypass -File install.ps1
 $ErrorActionPreference = "Stop"
 
-$REPO_DIR = (Get-Item $PSScriptRoot).FullName
-$PYTHON = "python"
+$a = (Get-Item $PSScriptRoot).FullName
+$b = "python"
 
-Write-Host "=== hivetool インストーラー ==="
+Write-Host "=== hivetool installer ==="
 
-# --- python チェック ---
+# --- python check ---
 if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
-    if (Get-Command py -ErrorAction SilentlyContinue) { $PYTHON = "py" }
+    if (Get-Command py -ErrorAction SilentlyContinue) { $b = "py" }
     else {
-        Write-Host "[エラー] python が見つかりません。python.org からインストールしてください。" -ForegroundColor Red
+        Write-Host "[ERROR] python not found. Install from python.org." -ForegroundColor Red
         exit 1
     }
 }
 
-# --- pipx チェック / なければ導入 ---
+# --- pipx check / install if missing ---
 if (-not (Get-Command pipx -ErrorAction SilentlyContinue)) {
-    Write-Host "[情報] pipx が見つかりません。導入します..." -ForegroundColor Cyan
-    & $PYTHON -m pip install --user pipx
-    # ユーザー PATH をこのセッションに反映
-    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    $env:Path = "$userPath;$env:Path"
+    Write-Host "[info] pipx not found. Installing..." -ForegroundColor Cyan
+    & $b -m pip install --user pipx
+    $c = [Environment]::GetEnvironmentVariable("Path", "User")
+    $env:Path = "$c;$env:Path"
     if (-not (Get-Command pipx -ErrorAction SilentlyContinue)) {
-        Write-Host "[エラー] pipx の導入に失敗しました。" -ForegroundColor Red
+        Write-Host "[ERROR] pipx install failed." -ForegroundColor Red
         exit 1
     }
 }
 
-# --- インストール ---
-Write-Host "[情報] pipx で hivetool をインストール..." -ForegroundColor Cyan
-pipx install "$REPO_DIR" --force
+# --- install ---
+Write-Host "[info] Installing hivetool via pipx..." -ForegroundColor Cyan
+pipx install "$a" --force
 
-# --- コマンド確認 ---
+# --- command check ---
 if (Get-Command hivetool -ErrorAction SilentlyContinue) {
-    Write-Host "[OK] hivetool コマンドが使えるようになりました。" -ForegroundColor Green
+    Write-Host "[OK] hivetool command is now available." -ForegroundColor Green
 }
 else {
-    Write-Host "[情報] パスが通っていません。環境変数 Path に pipx の場所を追加しますか？" -ForegroundColor Yellow
+    Write-Host "[info] Command not on PATH. Add pipx location to your user PATH?" -ForegroundColor Yellow
 }
 
-# --- ユーザー Path への登録（確認付き） ---
-$PIPX_DIR = "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps"
-$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-$needsPath = ($userPath -notmatch [regex]::Escape($PIPX_DIR))
+# --- user PATH registration (confirmation) ---
+$d = Get-Command pipx -ErrorAction SilentlyContinue
+if ($d -and $d.Source) { $e = Split-Path $d.Source }
+else { $e = "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps" }
+$f = [Environment]::GetEnvironmentVariable("Path", "User")
+$g = ($f -notmatch [regex]::Escape($e))
 
-if ($needsPath) {
+if ($g) {
     Write-Host ""
-    Write-Host "  pipx の場所がユーザー Path に含まれていません。"
-    Write-Host "  追加しますか？ (Y/n)"
-    $ans = Read-Host "  >"
-    if ($ans -eq "" -or $ans -match "^[Yy]$") {
-        if ($userPath -eq "") { $newPath = $PIPX_DIR }
-        else { $newPath = "$userPath;$PIPX_DIR" }
-        [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
-        $env:Path = "$newPath;$env:Path"
-        Write-Host "  -> ユーザー Path に追加しました。新しいターミナルで反映されます。" -ForegroundColor Green
+    Write-Host "  pipx location ($e) is not in your user PATH."
+    Write-Host "  Add it? (Y/n)"
+    $h = Read-Host "  >"
+    if ($h -eq "" -or $h -match "^[Yy]$") {
+        if ($f -eq "") { $i = $e } else { $i = "$f;$e" }
+        [Environment]::SetEnvironmentVariable("Path", $i, "User")
+        $env:Path = "$i;$env:Path"
+        Write-Host "  -> Added to user PATH. Reflects in a new terminal." -ForegroundColor Green
     }
     else {
-        Write-Host "[情報] スキップしました。手動で Path に $PIPX_DIR を追加してください。" -ForegroundColor Yellow
+        Write-Host "[info] Skipped. Manually add $e to PATH." -ForegroundColor Yellow
     }
 }
 
 Write-Host ""
-Write-Host "=== インストール完了 ===" -ForegroundColor Cyan
-Write-Host "使い方:"
+Write-Host "=== install complete ===" -ForegroundColor Cyan
+Write-Host "Usage:"
 Write-Host "  hivetool stats <player> [gamemode]"
 Write-Host "  hivetool watch <player> [gamemode]"
 Write-Host "  hivetool multiwatch [gamemode]"
-Write-Host "詳しくは README_ja.md を参照してください。"
+Write-Host "See README_ja.md for details."
