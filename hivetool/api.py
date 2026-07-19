@@ -331,9 +331,15 @@ class HiveAPIClient:
         if resp.status_code == 404:
             raise HiveAPIError(f"ゲーム '{game}' のデータが見つかりません。")
         resp.raise_for_status()
-        return resp.json()
+        data = resp.json()
+        # 未プレイ等で空リストが返る場合は「データなし」とする
+        if not isinstance(data, dict) or not data:
+            raise HiveAPIError(f"プレイヤー '{player}' の '{game}' のデータがありません（未プレイ？）。")
+        return data
 
     def _parse(self, raw: dict[str, Any], player: str, game: str) -> PlayerStats:
+        if not isinstance(raw, dict):
+            return PlayerStats(player=player, game=game)
         extra: dict[str, int] = {}
         for _, key in GAME_FIELDS.get(game, []):
             if key in raw:
