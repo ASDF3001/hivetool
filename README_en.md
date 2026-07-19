@@ -11,6 +11,7 @@ A CLI tool that fetches PlayHive (formerly Hivemc) stats from the official API a
 - `hivetool multiwatch [gamemode]` — Watch 2–4 slots side by side (`--slots 2..4`). Per slot, pick a player name / `top` (world #1) / blank Enter (skip) via the CUI menu.
 - `hivetool add <player>` — Save a player name and favorite gamemode to `~/.hivetool/config.json`.
 - `hivetool list` — Show saved players and the favorite mode.
+- `hivetool update` — Force-update hivetool itself (git pull from GitHub → pipx reinstall). Skips if you have uncommitted changes.
 
 ## Game modes
 
