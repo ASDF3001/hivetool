@@ -29,6 +29,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - `multiwatch` slot cap raised to 4 (`--slots 2..4`)
 - Local cache layer: real API responses are stored under `~/.hivetool/cache/<game>/<uuid>.json` with a 300s TTL, and polls serve from cache to avoid rate limits (429). A `[CACHE]` badge shows on the title when served from cache
 - `hivetool history <player> [gamemode]` command: records every `watch`/`multiwatch` poll under `~/.hivetool/history/` and shows "when / what changed" for the last N entries (`--limit`; up = green, down = red)
+- Docs: rewrote README setup around the "easiest install" path and explained real-API mode (mock vs real, persisting `HIVETOOL_MOCK=0`, telling `[MOCK]`/`[CACHE]` badges apart) with a comparison table (ja/en/md)
 
 ## [0.1.0] - 2026-07-18
 

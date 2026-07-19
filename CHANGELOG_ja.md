@@ -29,6 +29,7 @@
 - `multiwatch` のスロット数上限を 4 に拡張（`--slots 2..4`）
 - ローカルキャッシュ層: 実 API のレスポンスを `~/.hivetool/cache/<game>/<uuid>.json` に TTL 300s で保存し、ポール時はキャッシュから返すことでレート制限(429)を回避。キャッシュヒット時はタイトルに `[CACHE]` バッジ
 - `hivetool history <player> [gamemode]` コマンド: `watch`/`multiwatch` の各ポールを `~/.hivetool/history/` に記録し、「いつ・何が増減したか」を直近 N 件（`--limit`）で表示（増加=緑、減少=赤）
+- ドキュメント改善: README のセットアップを「一番簡単なインストール」中心に書き直し、実APIモード（モックとの違い・`HIVETOOL_MOCK=0` の永続化・`[MOCK]`/`[CACHE]` バッジ見分け）を表付きで分かりやすく解説（ja/en/md）
 
 ## [0.1.0] - 2026-07-18
 

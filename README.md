@@ -24,13 +24,25 @@ Aliases: `bedwars`→`bed`, `skywars`→`sky`, `blockhide`→`hide`, `deathrun`�
 
 ## Setup
 
-### One-line install (direct URL)
+### 🚀 Easiest install (recommended)
+
+Open a terminal and paste this one line, then press Enter:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/ASDF3001/hivetool/master/install.sh)
 ```
 
-### Or clone + run
+This automatically installs python → pipx and makes the `hivetool` command available.
+
+Then open a new terminal to verify:
+
+```bash
+hivetool stats Notch bed
+```
+
+If you see `[MOCK]`, install succeeded! (What that dummy data means is covered below in "What is real-API mode?")
+
+### 💻 Or clone + run
 
 ```bash
 git clone https://github.com/ASDF3001/hivetool.git
@@ -47,33 +59,56 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-### Auto-update on launch
+### 🔄 Auto-update on launch
 
 Every time `hivetool` runs, it does a `git pull --ff-only` to fetch updates.
 If you have **uncommitted changes** in the repo, the auto-update is skipped so your work is never overwritten.
 The required libraries (`click`, `rich`, `requests`) are also checked at launch; a missing one prints an install hint and exits.
 
+---
 
-## Real API notes
+## What is real-API mode? (vs. mock)
 
-- Endpoint: `https://api.playhive.com` (the old `api.hivemc.com` is defunct).
-- Stats: `GET /v0/game/all/{game}/{UUID}` (resolve a username to a UUID via `/v0/player/search/{partial}`).
-- Leaderboard: `GET /v0/game/leaderboard/{game}`.
+hivetool has **two modes**.
 
-### Mock / real API toggle
+| Mode | What it does | When to use |
+| --- | --- | --- |
+| **Mock** (`HIVETOOL_MOCK=1`) | Random dummy data generated in-code | Install check, offline, development |
+| **Real API** (`HIVETOOL_MOCK=0`) | Fetches **real stats** from the PlayHive API | When you want to see a friend's actual wins/losses |
 
-Switch with an environment variable (no code change needed):
+**The default is mock (dummy data).** If you run `hivetool stats Notch bed` with no env var, you get made-up numbers.
+
+### To see real stats
+
+**Always set `HIVETOOL_MOCK=0`:**
 
 ```bash
-HIVETOOL_MOCK=1  python -m hivetool.cli stats Notch bed   # mock (default, works offline)
-HIVETOOL_MOCK=0  python -m hivetool.cli stats Notch bed   # real API
+HIVETOOL_MOCK=0 hivetool stats Notch bed
 ```
 
-### Rate limiting
+Persist it by adding one line to your shell rc (`.zshrc` / `.bashrc`):
 
-The PlayHive API rate-limits per `game + player` combination. Rapid repeated requests to the same combination return `429 Too Many Attempts` and lock you out for a while. Normal interactive use (a human running `stats`) is fine; space out requests when scripting.
+```bash
+echo 'export HIVETOOL_MOCK=0' >> ~/.zshrc
+source ~/.zshrc
+```
 
-### Local cache mitigates rate limits
+### How to tell (badges)
+
+- `[MOCK]` → dummy data (not the real API)
+- `[CACHE]` → real-API result served from cache (see below)
+
+### Under the hood
+
+- Endpoint: `https://api.playhive.com` (the old `api.hivemc.com` is defunct).
+- Stats: `GET /v0/game/all/{game}/{UUID}` (a username is auto-resolved to a UUID via `/v0/player/search/{partial}`).
+- Leaderboard: `GET /v0/game/leaderboard/{game}`.
+
+### ⚠️ Rate limiting
+
+The PlayHive API rate-limits per `game + player` combination. Rapid repeated requests to the same combination return `429 Too Many Attempts` and lock you out for a while. Normal interactive use is fine; space out requests when scripting.
+
+### 💾 Local cache mitigates rate limits
 
 In real-API mode (`HIVETOOL_MOCK=0`), fetched stats are cached under `~/.hivetool/cache/<game>/<uuid>.json` for **300 seconds**. Re-fetching the same combination within 300s serves from cache, so consecutive `watch` polls rarely hit 429. A `[CACHE]` badge shows on the title when served from cache.
 

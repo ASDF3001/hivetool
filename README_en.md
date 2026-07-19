@@ -25,13 +25,40 @@ Aliases: `bedwars`→`bed`, `skywars`→`sky`, `blockhide`→`hide`, `deathrun`�
 
 ## Setup
 
-### One-line install (direct URL)
+### 🚀 Easiest install (recommended)
+
+Open a terminal and paste this one line, then press Enter:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/ASDF3001/hivetool/master/install.sh)
 ```
 
-### Or clone + run
+This automatically installs python → pipx and makes the `hivetool` command available.
+(If you're asked `Append PATH? [Y/n]` during install, press `Y`.)
+
+Then open a new terminal to verify:
+
+```bash
+hivetool stats Notch bed
+```
+
+If you see `[MOCK]`, install succeeded! (What that dummy data means is covered below in "What is real-API mode?")
+
+---
+
+### 🪟 On Windows (PowerShell)
+
+No admin rights needed. Open PowerShell and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File install.ps1
+```
+
+> Note: `install.ps1` is untested on Linux/macOS. If it doesn't work on Windows, please report it in an issue.
+
+---
+
+### 💻 More manual: clone + run
 
 ```bash
 git clone https://github.com/ASDF3001/hivetool.git
@@ -39,41 +66,28 @@ cd hivetool
 bash install.sh
 ```
 
-### On Windows (PowerShell)
+---
 
-Use `install.ps1` (no admin rights needed):
+### ⬆️ Already installed but it's an old version? (update)
 
-```powershell
-powershell -ExecutionPolicy Bypass -File install.ps1
+If you have the `hivetool update` command (v0.1.0+), just run it:
+
+```bash
+hivetool update
 ```
 
-It installs python → pipx, then `pipx install` hivetool. The pipx location is added to your user Path after a confirmation prompt.
-
-### Already have an older version? (update)
-
-The `hivetool update` command was added in **v0.1.0+**. Older installs don't have it, so use one of these to pull the latest:
-
-**A. Force reinstall via one-liner (recommended)**
-
-`bash <(curl ...)` process substitution breaks `install.sh`'s path resolution, so download it to a file first:
+Older installs don't have `update`, so force-reinstall instead:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ASDF3001/hivetool/master/install.sh -o /tmp/install.sh
 bash /tmp/install.sh
 ```
 
-**B. If you already cloned the repo**
+(The one-liner `bash <(curl ...)` breaks `install.sh`'s path resolution, so we download it to a file first.)
 
-```bash
-cd ~/hivetool         # where you cloned it
-git pull origin master  # get latest
-bash install.sh          # or: pipx install . --force
-```
+---
 
-After updating, `hivetool update` alone will suffice from then on.
-
-`install.sh` installs via pipx and, after a confirmation prompt, appends the pipx PATH to your shell rc files (`.zshrc`/`.bashrc`).
-To do it manually:
+### 🔧 For developers (run directly in a venv)
 
 ```bash
 python3 -m venv .venv
@@ -81,34 +95,59 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-### Auto-update on launch
+### 🔄 Auto-update on launch
 
 Every time `hivetool` runs, it does a `git pull --ff-only` to fetch updates.
 If you have **uncommitted changes** in the repo, the auto-update is skipped so your work is never overwritten.
 The required libraries (`click`, `rich`, `requests`) are also checked at launch; a missing one prints an install hint and exits.
 
-## Real API notes
+---
 
-- Endpoint: `https://api.playhive.com` (the old `api.hivemc.com` is defunct).
-- Stats: `GET /v0/game/all/{game}/{UUID}` (resolve a username to a UUID via `/v0/player/search/{partial}`).
-- Leaderboard: `GET /v0/game/leaderboard/{game}`.
+## What is real-API mode? (vs. mock)
 
-### Mock / real API toggle
+hivetool has **two modes**.
 
-Switch with an environment variable (no code change needed):
+| Mode | What it does | When to use |
+| --- | --- | --- |
+| **Mock** (`HIVETOOL_MOCK=1`) | Random dummy data generated in-code | Install check, offline, development |
+| **Real API** (`HIVETOOL_MOCK=0`) | Fetches **real stats** from the PlayHive API | When you want to see a friend's actual wins/losses |
+
+**The default is mock (dummy data).** If you run `hivetool stats Notch bed` with no env var, you get made-up numbers (they look real but they're fake).
+
+### To see real stats
+
+**Always set `HIVETOOL_MOCK=0`:**
 
 ```bash
-HIVETOOL_MOCK=1  python -m hivetool.cli stats Notch bed   # mock (default, works offline)
-HIVETOOL_MOCK=0  python -m hivetool.cli stats Notch bed   # real API
+HIVETOOL_MOCK=0 hivetool stats Notch bed
+HIVETOOL_MOCK=0 hivetool watch Notch bridge
 ```
 
-**Important**: Running without the env var uses **mock (dummy) data**. To see real stats you **must** set `HIVETOOL_MOCK=0`. While running in mock mode, the `stats` / `watch` title shows a `[MOCK]` badge so it's obvious at a glance.
+Tired of typing `HIVETOOL_MOCK=0` every time? Persist it by adding one line to your shell rc (`.zshrc` / `.bashrc`):
 
-### Rate limiting
+```bash
+echo 'export HIVETOOL_MOCK=0' >> ~/.zshrc
+source ~/.zshrc
+```
+
+### How to tell (badges)
+
+The title shows a badge so you know at a glance:
+
+- `[MOCK]` → dummy data (not the real API)
+- `[CACHE]` → real-API result served from cache (see below)
+
+### Under the hood
+
+- Endpoint: `https://api.playhive.com` (the old `api.hivemc.com` is defunct).
+- Stats: `GET /v0/game/all/{game}/{UUID}` (a username is auto-resolved to a UUID via `/v0/player/search/{partial}`).
+- Leaderboard: `GET /v0/game/leaderboard/{game}`.
+
+### ⚠️ Rate limiting
 
 The PlayHive API rate-limits per `game + player` combination. Rapid repeated requests to the same combination return `429 Too Many Attempts` and lock you out for a while. Normal interactive use (a human running `stats`) is fine; space out requests when scripting.
 
-### Local cache mitigates rate limits
+### 💾 Local cache mitigates rate limits
 
 In real-API mode (`HIVETOOL_MOCK=0`), fetched stats are cached under `~/.hivetool/cache/<game>/<uuid>.json` for **300 seconds**.
 Re-fetching the same combination within 300s returns the cached data without hitting the API, so consecutive `watch` polls are far less likely to hit 429.
