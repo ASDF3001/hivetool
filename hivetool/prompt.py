@@ -10,16 +10,20 @@ from .api import GAME_LABELS, available_tokens
 
 console = Console()
 
-# 枠ごとのカラー（GUI 負けしない派手さ）
-SLOT_COLORS = ["cyan", "green", "yellow", "magenta"]
+# slot colours (one per slot)
+SLOT_C = ["cyan", "green", "yellow", "magenta"]
 
 
 def select_game_mode(default_token: str | None = None) -> str:
     """利用可能なゲームモードを番号メニューで表示し、選ばせてトークンを返す。
 
     default_token が指定されていれば、それを '[Enter]で選択' の既定値にする。
+    tokens に存在しない値（大文字差・古い別名など）は無視される。
     """
     tokens = available_tokens()
+    # 存在しない default は None 扱いにする（ValueError 回避）
+    if default_token not in tokens:
+        default_token = None
     table = Table(title="ゲームモードを選択", show_lines=False, border_style="cyan")
     table.add_column("#", justify="right", style="bold cyan", width=4)
     table.add_column("モード", style="bold")
@@ -50,7 +54,7 @@ def select_player_slot(slot_index: int, default_player: str | None = None) -> st
 
     戻り値: プレイヤー名/UUID。空入力でスキップ（その枠を使わない）なら None。
     """
-    color = SLOT_COLORS[(slot_index - 1) % len(SLOT_COLORS)]
+    color = SLOT_C[(slot_index - 1) % len(SLOT_C)]
     panel = Panel(
         "[dim]プレイヤー名 または UUID を入力[/]\n"
         "[bold]top[/] → 世界1位を自動選択\n"
@@ -67,7 +71,7 @@ def select_player_slot(slot_index: int, default_player: str | None = None) -> st
         if not choice:
             if default_player:
                 return default_player
-            console.print(f"[dim]{color and ''}枠 {slot_index} をスキップします。[/]")
+            console.print(f"[dim]枠 {slot_index} をスキップします。[/]")
             return None
         if choice.lower() == "top":
             return "__TOP__"

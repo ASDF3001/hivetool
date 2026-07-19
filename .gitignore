@@ -10,6 +10,13 @@ dist/
 .venv/
 venv/
 
+# Build artifacts / caches
+.hivetool/
+.cache/
+
+# Dev / debug scripts (not part of the package)
+probe_api.py
+
 # Local config (contains saved players, not secrets)
 # config.json has no secrets, but keep local state out of VCS
 .hivetool/

@@ -117,3 +117,7 @@ Mode-specific examples: `beds_destroyed`(bed), `murders`(murder), `goals`(bridge
 ## License
 
 MIT
+
+## Changelog
+
+See [CHANGELOG_en.md](CHANGELOG_en.md).
