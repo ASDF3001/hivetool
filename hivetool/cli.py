@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.metadata as md
 import os
 import shutil
 import subprocess
@@ -46,14 +47,13 @@ def _check_libs() -> None:
         raise SystemExit(1)
 
 
-def _maybe_self_update() -> None:
-    """起動時に git pull で自己更新（未コミット変更があればスキップ）。"""
-    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def _git_pull(repo: str) -> str | None:
+    """git pull --ff-only を実行。戻り値: 'updated' / 'uptodate' / 'skipped' / 'nogit' / 'error'。"""
     git = shutil.which("git")
     if not git:
-        return
+        return "nogit"
     if not os.path.isdir(os.path.join(repo, ".git")):
-        return
+        return "nogit"
     # 未コミット変更があれば上書きを避ける
     try:
         status = subprocess.run(
@@ -61,19 +61,31 @@ def _maybe_self_update() -> None:
             capture_output=True, text=True, timeout=10,
         )
     except (subprocess.SubprocessError, OSError):
-        return
+        return "error"
     if status.stdout.strip():
-        err.print("[dim]未コミットの変更があるため自動更新をスキップしました。[/]")
-        return
+        return "skipped"
     try:
         result = subprocess.run(
             [git, "-C", repo, "pull", "--ff-only"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, timeout=60,
         )
     except (subprocess.SubprocessError, OSError):
-        return
-    if result.returncode == 0 and "Already up to date" not in result.stdout:
+        return "error"
+    if result.returncode != 0:
+        return "error"
+    if "Already up to date" in result.stdout or "Already up-to-date" in result.stdout:
+        return "uptodate"
+    return "updated"
+
+
+def _maybe_self_update() -> None:
+    """起動時に git pull で自己更新（未コミット変更があればスキップ）。"""
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    res = _git_pull(repo)
+    if res == "updated":
         err.print("[dim]更新を取得しました（次回起動から反映）。[/]")
+    elif res == "skipped":
+        err.print("[dim]未コミットの変更があるため自動更新をスキップしました。[/]")
 
 
 def _resolve_game(gamemode: str | None) -> str:
@@ -193,6 +205,59 @@ def list_cmd() -> None:
         err.print(f"- {p}")
     if fav:
         err.print(f"お気に入りモード: {fav}")
+
+
+@main.command()
+def update() -> None:
+    """hivetool 自身を最新版に強制更新する。
+
+    GitHub から git pull で取得し、pipx で再インストールします。
+    未コミットの変更がある場合は上書きを避けてスキップします。
+    """
+    try:
+        ver = md.version("hivetool")
+    except md.PackageNotFoundError:
+        ver = "不明"
+    err.print(f"[bold]hivetool 更新チェック[/]  (現在: v{ver})")
+
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    with err.status("[cyan]GitHub から更新を確認中...[/]"):
+        res = _git_pull(repo)
+    if res == "updated":
+        err.print("[green]✔ 新しい更新を取得しました[/]")
+    elif res == "uptodate":
+        err.print("[green]✔ すでに最新版です[/]")
+        return
+    elif res == "skipped":
+        err.print("[yellow]⚠ 未コミットの変更があるためスキップしました（更新を反映させるには commit または stash してください）[/]")
+        return
+    elif res == "nogit":
+        err.print("[yellow]⚠ git が見つからないか、git リポジトリではありません。手動で更新してください。[/]")
+        return
+    else:
+        err.print("[red]✘ 更新チェックに失敗しました[/]")
+        raise SystemExit(1)
+
+    # pipx で再インストール（pip みたいな進捗表示）
+    pipx = shutil.which("pipx")
+    if not pipx:
+        err.print("[yellow]⚠ pipx が見つかりません。手動で `pipx install <repo> --force` を実行してください。[/]")
+        return
+    err.print("[cyan]pipx で再インストール中...[/]")
+    try:
+        proc = subprocess.run(
+            [pipx, "install", repo, "--force"],
+            capture_output=True, text=True, timeout=300,
+        )
+    except (subprocess.SubprocessError, OSError) as e:
+        err.print(f"[red]✘ 再インストールに失敗: {e}[/]")
+        raise SystemExit(1)
+    if proc.returncode == 0:
+        err.print("[green]✔ 更新完了！次回起動から最新版が反映されます。[/]")
+    else:
+        err.print("[red]✘ 再インストールに失敗しました:[/]")
+        err.print(proc.stderr.strip() or proc.stdout.strip())
 
 
 @main.command()
