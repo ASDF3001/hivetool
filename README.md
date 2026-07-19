@@ -7,8 +7,8 @@ A CLI tool that fetches PlayHive (formerly Hivemc) stats from the official API a
 ## Commands
 
 - `hivetool stats <player> [gamemode]` — Show a player's stats (with computed values like KDR / win rate). Gamemode is optional (uses favorite or a menu).
-- `hivetool watch <player> [gamemode]` — Auto-refresh every 120s, showing deltas since the last refresh (green = up, red = down).
-- `hivetool multiwatch [gamemode]` — Watch 2–4 slots side by side. Per slot, pick a player name / `top` (world #1) / blank Enter (skip) via the CUI menu.
+- `hivetool watch <player> [gamemode]` — Auto-refresh every 300s (default), showing deltas since the last refresh (green = up, red = down).
+- `hivetool multiwatch [gamemode]` — Watch 2–4 slots side by side (`--slots 2..4`). Per slot, pick a player name / `top` (world #1) / blank Enter (skip) via the CUI menu.
 - `hivetool add <player>` — Save a player name and favorite gamemode to `~/.hivetool/config.json`.
 - `hivetool list` — Show saved players and the favorite mode.
 
@@ -23,11 +23,21 @@ Aliases: `bedwars`→`bed`, `skywars`→`sky`, `blockhide`→`hide`, `deathrun`�
 
 ## Setup
 
+### One-line install (direct URL)
+
 ```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/ASDF3001/hivetool/master/install.sh)
+```
+
+### Or clone + run
+
+```bash
+git clone https://github.com/ASDF3001/hivetool.git
+cd hivetool
 bash install.sh
 ```
 
-This installs via pipx and, after a confirmation prompt, appends the pipx PATH to your shell rc files (`.zshrc`/`.bashrc`).
+`install.sh` installs via pipx and, after a confirmation prompt, appends the pipx PATH to your shell rc files (`.zshrc`/`.bashrc`).
 To do it manually:
 
 ```bash
@@ -35,6 +45,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
 ```
+
+### Auto-update on launch
+
+Every time `hivetool` runs, it does a `git pull --ff-only` to fetch updates.
+If you have **uncommitted changes** in the repo, the auto-update is skipped so your work is never overwritten.
+The required libraries (`click`, `rich`, `requests`) are also checked at launch; a missing one prints an install hint and exits.
+
 
 ## Real API notes
 
