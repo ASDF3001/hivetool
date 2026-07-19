@@ -30,6 +30,9 @@ err = Console(stderr=True)
 # 起動時に上書きしたくない依存ライブラリ
 _REQUIRED_LIBS = ("click", "rich", "requests")
 
+# pipx 経由で直接最新を取ってくる URL（ローカル .git が無い環境でも update が効く）
+_UPDATE_URL = "git+https://github.com/ASDF3001/hivetool.git"
+
 
 def _check_libs() -> None:
     """必須ライブラリが import できるか確認し、欠けていれば案内。"""
@@ -211,8 +214,10 @@ def list_cmd() -> None:
 def update() -> None:
     """hivetool 自身を最新版に強制更新する。
 
-    GitHub から git pull で取得し、pipx で再インストールします。
-    未コミットの変更がある場合は上書きを避けてスキップします。
+    GitHub から最新を取得し、pipx で再インストールします。
+    ローカルに git リポジトリがある場合は git pull を試み、
+    未コミットの変更がある時は上書きを避けてスキップします。
+    pipx でインストールされた環境（.git なし）でもそのまま使えます。
     """
     try:
         ver = md.version("hivetool")
@@ -222,32 +227,35 @@ def update() -> None:
 
     repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-    with err.status("[cyan]GitHub から更新を確認中...[/]"):
-        res = _git_pull(repo)
-    if res == "updated":
-        err.print("[green]✔ 新しい更新を取得しました[/]")
-    elif res == "uptodate":
-        err.print("[green]✔ すでに最新版です[/]")
-        return
-    elif res == "skipped":
-        err.print("[yellow]⚠ 未コミットの変更があるためスキップしました（更新を反映させるには commit または stash してください）[/]")
-        return
-    elif res == "nogit":
-        err.print("[yellow]⚠ git が見つからないか、git リポジトリではありません。手動で更新してください。[/]")
-        return
+    # ローカル repo がある場合のみ git pull を試みる
+    git = shutil.which("git")
+    if git and os.path.isdir(os.path.join(repo, ".git")):
+        with err.status("[cyan]GitHub から更新を確認中...[/]"):
+            res = _git_pull(repo)
+        if res == "updated":
+            err.print("[green]✔ 新しい更新を取得しました[/]")
+        elif res == "uptodate":
+            err.print("[green]✔ すでに最新版です[/]")
+            return
+        elif res == "skipped":
+            err.print("[yellow]⚠ 未コミットの変更があるためスキップしました（更新を反映させるには commit または stash してください）[/]")
+            return
+        elif res == "error":
+            err.print("[red]✘ 更新チェックに失敗しました[/]")
+            raise SystemExit(1)
+        # nogit の場合は下の pipx 経路へフォールバック
     else:
-        err.print("[red]✘ 更新チェックに失敗しました[/]")
-        raise SystemExit(1)
+        err.print("[dim]ローカル git リポジトリがないため、GitHub から直接取得します。[/]")
 
     # pipx で再インストール（pip みたいな進捗表示）
     pipx = shutil.which("pipx")
     if not pipx:
-        err.print("[yellow]⚠ pipx が見つかりません。手動で `pipx install <repo> --force` を実行してください。[/]")
+        err.print("[yellow]⚠ pipx が見つかりません。手動で `pipx install hivetool --force` を実行してください。[/]")
         return
     err.print("[cyan]pipx で再インストール中...[/]")
     try:
         proc = subprocess.run(
-            [pipx, "install", repo, "--force"],
+            [pipx, "install", _UPDATE_URL, "--force"],
             capture_output=True, text=True, timeout=300,
         )
     except (subprocess.SubprocessError, OSError) as e:
