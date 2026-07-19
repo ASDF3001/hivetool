@@ -36,6 +36,17 @@ cd hivetool
 bash install.sh
 ```
 
+### Windows の場合（PowerShell）
+
+`install.ps1` を使います（管理者権限は不要）。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File install.ps1
+```
+
+内部で python → pipx を導入し、`pipx install` で hivetool を入れます。
+pipx の場所（ユーザー Path）への登録は確認付きで行われます。
+
 ### すでに古い版が入っている場合（アップデート）
 
 `hivetool update` コマンドは **v0.1.0 以降** で追加されました。それより古い版には存在しないため、以下のいずれかで最新を持ってきてください。

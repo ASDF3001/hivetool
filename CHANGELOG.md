@@ -14,6 +14,7 @@
 - 各コマンドの `--help` を充実（引数・オプションの説明追加）
 
 ### Added
+- `install.ps1` (Windows / PowerShell 版インストーラー): python → pipx 導入、`pipx install`、ユーザー Path 登録（確認付き）
 - `hivetool update` コマンド: GitHub から `git pull` → pipx で再インストール（pip 風の進捗表示付き、未コミット変更時はスキップ）
 - `install.sh`: pipx 経由のインストール、依存チェック、rc ファイルへの PATH 登録（確認付き）
 - 起動時の自動更新（`git pull --ff-only`、未コミット変更があればスキップ）

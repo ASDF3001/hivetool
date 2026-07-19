@@ -38,6 +38,16 @@ cd hivetool
 bash install.sh
 ```
 
+### On Windows (PowerShell)
+
+Use `install.ps1` (no admin rights needed):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File install.ps1
+```
+
+It installs python → pipx, then `pipx install` hivetool. The pipx location is added to your user Path after a confirmation prompt.
+
 ### Already have an older version? (update)
 
 The `hivetool update` command was added in **v0.1.0+**. Older installs don't have it, so use one of these to pull the latest:
