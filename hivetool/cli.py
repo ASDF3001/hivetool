@@ -116,7 +116,7 @@ def stats(player: str, gamemode: str | None) -> None:
 @main.command()
 @click.argument("player")
 @click.argument("gamemode", required=False)
-@click.option("--interval", default=120, show_default=True, help="更新間隔（秒）。最小10秒。")
+@click.option("--interval", default=300, show_default=True, help="更新間隔（秒）。最小10秒。")
 def watch(player: str, gamemode: str | None, interval: int) -> None:
     """戦績を自動更新し、差分を表示する。ゲームモード省略可。"""
     if interval < 10:
@@ -173,7 +173,7 @@ def list_cmd() -> None:
 
 @main.command()
 @click.argument("gamemode", required=False)
-@click.option("--interval", default=120, show_default=True, help="更新間隔（秒）。最小10秒。")
+@click.option("--interval", default=300, show_default=True, help="更新間隔（秒）。最小10秒。")
 @click.option("--slots", default=2, show_default=True, help="枠数（2〜4）。")
 def multiwatch(gamemode: str | None, interval: int, slots: int) -> None:
     """複数プレイヤーを同時視聴（2〜4枠）。指定/世界トップをCUIで選択。"""

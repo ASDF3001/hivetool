@@ -17,6 +17,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import requests
+from rich.console import Console
+
+err_console = Console(stderr=True)
 
 # 実APIが使える環境では HIVETOOL_MOCK=0 にする（コード変更不要）。
 USE_MOCK = os.environ.get("HIVETOOL_MOCK", "1") != "0"
@@ -249,6 +252,9 @@ class HiveAPIClient:
     def __init__(self, timeout: float = 10.0) -> None:
         self.timeout = timeout
         self.session = requests.Session()
+        self.session.headers.update(
+            {"User-Agent": "hivetool/1.0 (+https://github.com/ASDF3001/hivetool)"}
+        )
 
     def get_stats(self, player: str, game: str) -> PlayerStats:
         token = resolve_token(game) or game.lower()
@@ -260,15 +266,40 @@ class HiveAPIClient:
 
     # --- 実API（PlayHive） ---
 
+    def _get(self, url: str, retries: int = 3) -> requests.Response:
+        """GET し、429 なら Retry-After を読んで自動待機→リトライ。"""
+        attempt = 0
+        while True:
+            try:
+                resp = self.session.get(url, timeout=self.timeout)
+            except requests.RequestException as e:
+                raise HiveAPIError(f"APIに接続できませんでした（{e}）。\n"
+                                  f"オフライン検証なら HIVETOOL_MOCK=1 にしてください。") from e
+            if resp.status_code != 429:
+                return resp
+            attempt += 1
+            if attempt > retries:
+                raise HiveAPIError("レート制限にかかりました。しばらく待って再試行してください。")
+            wait = resp.headers.get("Retry-After")
+            try:
+                wait_sec = int(wait) if wait else 60
+            except ValueError:
+                wait_sec = 60
+            # 長すぎる待機は諦める（手動再試行を促す）
+            if wait_sec > 600:
+                raise HiveAPIError(
+                    f"レート制限中です。約{wait_sec}秒後に再試行してください。"
+                )
+            err_console.print(f"[yellow]レート制限中…{wait_sec}秒待機してリトライします "
+                              f"({attempt}/{retries})[/]")
+            time.sleep(wait_sec)
+
     def _resolve_uuid(self, player: str) -> str:
         """プレイヤー名/UUID から UUID を解決。すでにUUIDならそのまま。"""
         if _looks_like_uuid(player):
             return player
         url = f"{BASE_URL}/v0/player/search/{player}"
-        try:
-            resp = self.session.get(url, timeout=self.timeout)
-        except requests.RequestException as e:
-            raise HiveAPIError(f"プレイヤー検索に失敗: {e}") from e
+        resp = self._get(url)
         if resp.status_code == 422:
             # 短すぎる等のバリデーションエラー
             raise HiveAPIError(f"プレイヤー名 '{player}' は無効です（4文字以上で指定）。")
@@ -285,12 +316,7 @@ class HiveAPIClient:
         if USE_MOCK:
             return ("TopPlayer", "00000000-0000-0000-0000-000000000000")
         url = f"{BASE_URL}/v0/game/leaderboard/{token}"
-        try:
-            resp = self.session.get(url, timeout=self.timeout)
-        except requests.RequestException as e:
-            raise HiveAPIError(f"リーダーボード取得に失敗: {e}") from e
-        if resp.status_code == 429:
-            raise HiveAPIError("レート制限にかかりました。しばらく待って再試行してください。")
+        resp = self._get(url)
         resp.raise_for_status()
         data = resp.json()
         if not data:
@@ -301,17 +327,9 @@ class HiveAPIClient:
     def _fetch_real(self, player: str, game: str) -> dict[str, Any]:
         uuid = self._resolve_uuid(player)
         url = f"{BASE_URL}/v0/game/all/{game}/{uuid}"
-        try:
-            resp = self.session.get(url, timeout=self.timeout)
-        except requests.RequestException as e:
-            raise HiveAPIError(
-                f"APIに接続できませんでした（{e}）。\n"
-                f"オフライン検証なら HIVETOOL_MOCK=1 にしてください。"
-            ) from e
+        resp = self._get(url)
         if resp.status_code == 404:
             raise HiveAPIError(f"ゲーム '{game}' のデータが見つかりません。")
-        if resp.status_code == 429:
-            raise HiveAPIError("レート制限にかかりました。しばらく待って再試行してください。")
         resp.raise_for_status()
         return resp.json()
 
