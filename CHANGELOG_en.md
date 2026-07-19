@@ -13,6 +13,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 ### Changed
 - UI polish: emphasised section divider, bold KDR/WinRate rows, per-line green ▲ / red ▼ delta summary
 - Richer per-command `--help` text (arguments and options explained)
+- **Default is now the real API**: with no env var hivetool fetches actual stats. Mock (dummy data) only when `HIVETOOL_MOCK=1` is set (previously: default mock, real API needed `HIVETOOL_MOCK=0`)
 
 ### Added
 - `install.ps1` (Windows / PowerShell installer): python → pipx install, `pipx install`, user Path registration (confirmation)

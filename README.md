@@ -40,7 +40,7 @@ Then open a new terminal to verify:
 hivetool stats Notch bed
 ```
 
-If you see `[MOCK]`, install succeeded! (What that dummy data means is covered below in "What is real-API mode?")
+If you see real stats, install succeeded! (If it can't reach the API, see "What is real-API mode?" below.)
 
 ### Or clone + run
 
@@ -73,24 +73,17 @@ hivetool has **two modes**.
 
 | Mode | What it does | When to use |
 | --- | --- | --- |
-| **Mock** (`HIVETOOL_MOCK=1`) | Random dummy data generated in-code | Install check, offline, development |
-| **Real API** (`HIVETOOL_MOCK=0`) | Fetches **real stats** from the PlayHive API | When you want to see a friend's actual wins/losses |
+| **Real API** (default) | Fetches **real stats** from the PlayHive API | This is the normal one (when you want a friend's actual wins/losses) |
+| **Mock** (`HIVETOOL_MOCK=1`) | Random dummy data generated in-code | Offline testing / development only |
 
-**The default is mock (dummy data).** If you run `hivetool stats Notch bed` with no env var, you get made-up numbers.
+**The default is the real API.** If you run `hivetool stats Notch bed` with no env var, you get the actual stats right away.
 
-### To see real stats
+### Only when you need dummy data (offline, etc.)
 
-**Always set `HIVETOOL_MOCK=0`:**
-
-```bash
-HIVETOOL_MOCK=0 hivetool stats Notch bed
-```
-
-Persist it by adding one line to your shell rc (`.zshrc` / `.bashrc`):
+**Set `HIVETOOL_MOCK=1`:**
 
 ```bash
-echo 'export HIVETOOL_MOCK=0' >> ~/.zshrc
-source ~/.zshrc
+HIVETOOL_MOCK=1 hivetool stats Notch bed
 ```
 
 ### How to tell (badges)

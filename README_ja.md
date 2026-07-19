@@ -40,7 +40,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/ASDF3001/hivetool/master/ins
 hivetool stats Notch bed
 ```
 
-`[MOCK]` と表示されればインストール成功！（このダミーデータについては下の「実APIモードってなに？」を参照）
+本当の戦績が表示されればインストール成功！（アクセスできない時は下の「実APIモードってなに？」を参照）
 
 ---
 
@@ -107,25 +107,18 @@ hivetool には **2つの動作モード** があります。
 
 | モード | 内容 | いつ使う？ |
 | --- | --- | --- |
-| **モック** (`HIVETOOL_MOCK=1`) | プログラム内で適当に生成したダミーデータ | インストール確認・オフライン・開発中 |
-| **実API** (`HIVETOOL_MOCK=0`) | PlayHive の公式APIから**本当の戦績**を取得 | 友達の実際の勝敗を見たい時 |
+| **実API**（デフォルト） | PlayHive の公式APIから**本当の戦績**を取得 | 普段使うのはこれ（友達の実際の勝敗を見たい時） |
+| **モック** (`HIVETOOL_MOCK=1`) | プログラム内で適当に生成したダミーデータ | オフライン検証・開発中のみ |
 
-**デフォルトはモック（ダミー）です。** 環境変数を何も付けずに `hivetool stats Notch bed` と打つと、でたらめな数字が出ます（本物っぽく見えるけど偽物）。
+**デフォルトは実API（本物）です。** 環境変数を何も付けずに `hivetool stats Notch bed` と打つと、そのまま本当の戦績が取れます。
 
-### 本当の戦績を見るには
+### オフライン等でダミーデータが必要な時だけ
 
-**`HIVETOOL_MOCK=0` を必ず付けてください：**
-
-```bash
-HIVETOOL_MOCK=0 hivetool stats Notch bed
-HIVETOOL_MOCK=0 hivetool watch Notch bridge
-```
-
-毎回 `HIVETOOL_MOCK=0` を打つのが面倒なら、シェルの設定ファイル（`.zshrc` / `.bashrc`）に1行書いておくと永続化できます：
+**`HIVETOOL_MOCK=1` を付けてください：**
 
 ```bash
-echo 'export HIVETOOL_MOCK=0' >> ~/.zshrc
-source ~/.zshrc
+HIVETOOL_MOCK=1 hivetool stats Notch bed
+HIVETOOL_MOCK=1 hivetool watch Notch bridge
 ```
 
 ### 見分け方（バッジ）

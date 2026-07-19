@@ -121,8 +121,9 @@ def main() -> None:
       add       プレイヤー名とお気に入りモードを保存
       list      保存済みプレイヤーを表示
 
-    実APIを使うには環境変数 HIVETOOL_MOCK=0 を設定してください
-    （未設定時はモックデータになります）。
+    デフォルトは実API（PlayHive公式）で本当の戦績を表示します。
+    オフライン検証等でモック（ダミーデータ）が必要な場合のみ
+    環境変数 HIVETOOL_MOCK=1 を設定してください。
     詳しくは README.md / README_ja.md を参照。
     """
     _check_libs()

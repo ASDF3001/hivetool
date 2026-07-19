@@ -13,6 +13,7 @@
 ### Changed
 - UI ブラッシュアップ: セクション区切りの強調、KDR/WinRate を太字強調行に、差分サマリーを行ごとに ▲緑/▼赤 で色分け
 - 各コマンドの `--help` を充実（引数・オプションの説明追加）
+- **デフォルトを実APIに変更**: 環境変数なしで本当の戦績を取得。モック（ダミーデータ）は `HIVETOOL_MOCK=1` を付けた時のみ（旧: デフォルトモック、実APIは `HIVETOOL_MOCK=0`）
 
 ### Added
 - `install.ps1` (Windows / PowerShell 版インストーラー): python → pipx 導入、`pipx install`、ユーザー Path 登録（確認付き）

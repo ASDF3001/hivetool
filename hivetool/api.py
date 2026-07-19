@@ -4,8 +4,8 @@
 統計エンドポイント: GET /v0/game/all/{game}/{UUID}
 プレイヤー検索:     GET /v0/player/search/{partial}
 
-現状はモック実装で動作する。実APIが利用可能なら環境変数
-HIVETOOL_MOCK=0 にして有効化する（コード変更不要）。
+デフォルトは実APIで動作する。オフライン検証等でモック（ダミーデータ）が
+必要な場合のみ環境変数 HIVETOOL_MOCK=1 を設定する（コード変更不要）。
 """
 
 from __future__ import annotations
@@ -57,8 +57,8 @@ def _cache_set(game: str, uuid: str, data: dict) -> None:
     except OSError:
         pass
 
-# 実APIが使える環境では HIVETOOL_MOCK=0 にする（コード変更不要）。
-USE_MOCK = os.environ.get("HIVETOOL_MOCK", "1") != "0"
+# デフォルトは実API。モック（ダミーデータ）を使う場合のみ HIVETOOL_MOCK=1 を設定。
+USE_MOCK = os.environ.get("HIVETOOL_MOCK") == "1"
 
 BASE_URL = "https://api.playhive.com"
 
@@ -318,7 +318,7 @@ class HiveAPIClient:
                 resp = self.session.get(url, timeout=self.timeout)
             except requests.RequestException as e:
                 raise HiveAPIError(f"APIに接続できませんでした（{e}）。\n"
-                                  f"オフライン検証なら HIVETOOL_MOCK=1 にしてください。") from e
+                                  f"ネット接続を確認するか、オフライン検証なら HIVETOOL_MOCK=1 にしてください。") from e
             if resp.status_code != 429:
                 return resp
             attempt += 1
