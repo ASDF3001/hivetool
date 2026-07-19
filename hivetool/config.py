@@ -65,12 +65,15 @@ def set_favorite_game(token: str) -> None:
 
 # --- セッション履歴（watch / multiwatch のポール記録） ---
 
-def save_history_entry(player: str, game: str, stats: dict[str, Any]) -> None:
+def save_history_entry(player: str, game: str, stats: Any) -> None:
     """1ポールの結果を history/<player>_<game>_<timestamp>.json に追記。"""
     HISTORY_DIR.mkdir(parents=True, exist_ok=True)
     ts = int(time.time())
     safe = f"{player}_{game}".replace("/", "_").replace("\\", "_")
     path = HISTORY_DIR / f"{safe}_{ts}.json"
+    # stats は (label, value) のリストかもしれない → dict に正規化
+    if isinstance(stats, (list, tuple)):
+        stats = dict(stats)
     entry = {"player": player, "game": game, "ts": ts, "stats": stats}
     try:
         with path.open("w", encoding="utf-8") as f:
@@ -92,4 +95,9 @@ def load_history(player: str, game: str, limit: int = 50) -> list[dict[str, Any]
         except (OSError, ValueError):
             continue
     entries.sort(key=lambda e: e.get("ts", 0), reverse=True)
+    # 旧形式（stats が (label,value) リスト）への互換: dict に正規化
+    for e in entries:
+        s = e.get("stats")
+        if isinstance(s, (list, tuple)):
+            e["stats"] = dict(s)
     return entries[:limit]

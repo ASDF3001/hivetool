@@ -237,7 +237,8 @@ def history_cmd(player: str, gamemode: str | None, limit: int) -> None:
     prev: dict[str, int] | None = None
     for e in reversed(entries):
         ts = e.get("ts", 0)
-        when = datetime.fromtimestamp(ts).strftime("%m-%d %H:%M")
+        lt = time.localtime(ts)
+        when = f"{lt.tm_mon:02d}-{lt.tm_mday:02d} {lt.tm_hour:02d}:{lt.tm_min:02d}"
         stats = e.get("stats", {})
         line = f"[dim]{when}[/]"
         if prev:
@@ -246,7 +247,7 @@ def history_cmd(player: str, gamemode: str | None, limit: int) -> None:
                 d = val - prev.get(label, val)
                 if d != 0:
                     color = "green" if d > 0 else "red"
-                    deltas.append(f"[{color}]{label} {d:+,}[/{color}]")
+                    deltas.append(f"[{color}]{label} {d:+d}[/{color}]")
             if deltas:
                 line += "  " + "  ".join(deltas)
         err.print(line)
