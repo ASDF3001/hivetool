@@ -27,6 +27,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - `install.sh` hardening: `pyproject.toml` existence check, trailing-slash trim on `REPO_DIR`
 - `watch` / `multiwatch` default poll interval changed 120s → 300s (PlayHive rate-limit mitigation)
 - `multiwatch` slot cap raised to 4 (`--slots 2..4`)
+- Local cache layer: real API responses are stored under `~/.hivetool/cache/<game>/<uuid>.json` with a 300s TTL, and polls serve from cache to avoid rate limits (429). A `[CACHE]` badge shows on the title when served from cache
+- `hivetool history <player> [gamemode]` command: records every `watch`/`multiwatch` poll under `~/.hivetool/history/` and shows "when / what changed" for the last N entries (`--limit`; up = green, down = red)
 
 ## [0.1.0] - 2026-07-18
 

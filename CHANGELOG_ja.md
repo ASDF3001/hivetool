@@ -27,6 +27,8 @@
 - `install.sh` の堅牢化: `pyproject.toml` 存在チェック、`REPO_DIR` 末尾スラッシュ除去
 - `watch` / `multiwatch` のデフォルト更新間隔を 120s → 300s に変更（PlayHive API のレート制限対策）
 - `multiwatch` のスロット数上限を 4 に拡張（`--slots 2..4`）
+- ローカルキャッシュ層: 実 API のレスポンスを `~/.hivetool/cache/<game>/<uuid>.json` に TTL 300s で保存し、ポール時はキャッシュから返すことでレート制限(429)を回避。キャッシュヒット時はタイトルに `[CACHE]` バッジ
+- `hivetool history <player> [gamemode]` コマンド: `watch`/`multiwatch` の各ポールを `~/.hivetool/history/` に記録し、「いつ・何が増減したか」を直近 N 件（`--limit`）で表示（増加=緑、減少=赤）
 
 ## [0.1.0] - 2026-07-18
 

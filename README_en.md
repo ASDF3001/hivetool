@@ -11,6 +11,7 @@ A CLI tool that fetches PlayHive (formerly Hivemc) stats from the official API a
 - `hivetool multiwatch [gamemode]` — Watch 2–4 slots side by side (`--slots 2..4`). Per slot, pick a player name / `top` (world #1) / blank Enter (skip) via the CUI menu.
 - `hivetool add <player>` — Save a player name and favorite gamemode to `~/.hivetool/config.json`.
 - `hivetool list` — Show saved players and the favorite mode.
+- `hivetool history <player> [gamemode]` — Show the `watch`/`multiwatch` poll history (when / what changed; `--limit` sets the count).
 - `hivetool update` — Force-update hivetool itself (git pull from GitHub → pipx reinstall). Skips if you have uncommitted changes.
 
 ## Game modes
@@ -106,6 +107,12 @@ HIVETOOL_MOCK=0  python -m hivetool.cli stats Notch bed   # real API
 ### Rate limiting
 
 The PlayHive API rate-limits per `game + player` combination. Rapid repeated requests to the same combination return `429 Too Many Attempts` and lock you out for a while. Normal interactive use (a human running `stats`) is fine; space out requests when scripting.
+
+### Local cache mitigates rate limits
+
+In real-API mode (`HIVETOOL_MOCK=0`), fetched stats are cached under `~/.hivetool/cache/<game>/<uuid>.json` for **300 seconds**.
+Re-fetching the same combination within 300s returns the cached data without hitting the API, so consecutive `watch` polls are far less likely to hit 429.
+When served from cache, a `[CACHE]` badge appears in the title (the cache refreshes automatically once the TTL expires).
 
 ## Real field names (verified)
 
