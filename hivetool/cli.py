@@ -13,7 +13,7 @@ from rich.console import Console, Group
 from rich.live import Live
 from rich.panel import Panel
 
-from .api import HiveAPIClient, HiveAPIError, resolve_token
+from .api import HiveAPIClient, HiveAPIError, USE_MOCK, resolve_token
 from .config import (
     add_player,
     get_favorite_game,
@@ -92,9 +92,21 @@ def _resolve_game(gamemode: str | None) -> str:
 
 
 @click.group()
-@click.version_option()
+@click.version_option(version="0.1.0")
 def main() -> None:
-    """Hivemc 戦績表示CLIツール。"""
+    """hivetool — PlayHive 公式APIから戦績を取得し、ターミナルに表示するCLI。
+
+    コマンド:
+      stats     プレイヤー1人の戦績を表示
+      watch     戦績を自動更新し差分を表示
+      multiwatch 2〜4人を同時視聴
+      add       プレイヤー名とお気に入りモードを保存
+      list      保存済みプレイヤーを表示
+
+    実APIを使うには環境変数 HIVETOOL_MOCK=0 を設定してください
+    （未設定時はモックデータになります）。
+    詳しくは README.md / README_ja.md を参照。
+    """
     _check_libs()
     _maybe_self_update()
 
@@ -103,14 +115,19 @@ def main() -> None:
 @click.argument("player")
 @click.argument("gamemode", required=False)
 def stats(player: str, gamemode: str | None) -> None:
-    """指定プレイヤーの戦績を表示する。ゲームモード省略可。"""
+    """指定プレイヤーの戦績を表示する。
+
+    PLAYER: プレイヤー名またはUUID
+    GAMEMODE: 省略可（bed/sky/bridge 等、エイリアス可）。
+    省略時はお気に入りモード、または選択メニューになります。
+    """
     try:
         token = _resolve_game(gamemode)
         result = client.get_stats(player, token)
     except HiveAPIError as e:
         err.print(f"[red]{e}[/]")
         raise SystemExit(1)
-    console.print(render_stats(result))
+    console.print(render_stats(result, mock=USE_MOCK))
 
 
 @main.command()
@@ -118,7 +135,13 @@ def stats(player: str, gamemode: str | None) -> None:
 @click.argument("gamemode", required=False)
 @click.option("--interval", default=300, show_default=True, help="更新間隔（秒）。最小10秒。")
 def watch(player: str, gamemode: str | None, interval: int) -> None:
-    """戦績を自動更新し、差分を表示する。ゲームモード省略可。"""
+    """戦績を自動更新し、前回からの差分を表示する。
+
+    PLAYER: プレイヤー名またはUUID
+    GAMEMODE: 省略可（bed/sky/bridge 等）。
+    --interval: 更新間隔（秒、デフォルト300）。最小10秒。
+    増加は緑、減少は赤で表示されます。Ctrl-C で終了。
+    """
     if interval < 10:
         interval = 10
     try:
@@ -126,8 +149,9 @@ def watch(player: str, gamemode: str | None, interval: int) -> None:
     except HiveAPIError as e:
         err.print(f"[red]{e}[/]")
         raise SystemExit(1)
+    mode_badge = "[dim yellow][MOCK][/]" if USE_MOCK else ""
     prev = None
-    err.print(f"watching {player} ({token}) — Ctrl-C で終了")
+    err.print(f"watching {player} ({token}) {mode_badge}— Ctrl-C で終了")
     try:
         with Live(refresh_per_second=4) as live:
             live.update(Panel("[dim]取得中...[/]", title=f"{player} — {token}"))
@@ -138,7 +162,7 @@ def watch(player: str, gamemode: str | None, interval: int) -> None:
                     live.update(Panel(f"[red]{e}[/]", title=f"{player} — {token}"))
                     time.sleep(interval)
                     continue
-                live.update(render_stats(cur, prev))
+                live.update(render_stats(cur, prev, mock=USE_MOCK))
                 prev = cur
                 time.sleep(interval)
     except KeyboardInterrupt:
@@ -176,7 +200,13 @@ def list_cmd() -> None:
 @click.option("--interval", default=300, show_default=True, help="更新間隔（秒）。最小10秒。")
 @click.option("--slots", default=2, show_default=True, help="枠数（2〜4）。")
 def multiwatch(gamemode: str | None, interval: int, slots: int) -> None:
-    """複数プレイヤーを同時視聴（2〜4枠）。指定/世界トップをCUIで選択。"""
+    """複数プレイヤーを同時視聴（2〜4枠）。
+
+    GAMEMODE: 省略可（bed/sky/bridge 等）。
+    --interval: 更新間隔（秒、デフォルト300）。最小10秒。
+    --slots: 枠数（2〜4）。
+    各枠でプレイヤー名 / top（世界1位）/ 空Enter（スキップ）を選択。
+    """
     if interval < 10:
         interval = 10
     slots = max(2, min(4, slots))
@@ -222,7 +252,7 @@ def multiwatch(gamemode: str | None, interval: int, slots: int) -> None:
                         stats_list.append(Panel(f"[red]{e}[/]", title=name))
                         continue
                     prev = prev_map.get(ident)
-                    stats_list.append(render_stats(cur, prev))
+                    stats_list.append(render_stats(cur, prev, mock=USE_MOCK))
                     prev_map[ident] = cur
                 live.update(Columns(stats_list, equal=True, column_first=False))
                 time.sleep(interval)

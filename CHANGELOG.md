@@ -5,6 +5,14 @@
 
 ## [Unreleased]
 
+### Fixed
+- `watch`/`stats` で mock と実API が混ざって桁違いの差分が出るバグを修正: タイトルに `[MOCK]` バッジを表示し、実行時に `HIVETOOL_MOCK=0` が必須なことを明示
+- `render_stats` の KDR/WinRate 差分表示で float 丸め誤差による `-0.00` 表示を修正
+
+### Changed
+- UI ブラッシュアップ: セクション区切りの強調、KDR/WinRate を太字強調行に、差分サマリーを行ごとに ▲緑/▼赤 で色分け
+- 各コマンドの `--help` を充実（引数・オプションの説明追加）
+
 ### Added
 - `install.sh`: pipx 経由のインストール、依存チェック、rc ファイルへの PATH 登録（確認付き）
 - 起動時の自動更新（`git pull --ff-only`、未コミット変更があればスキップ）

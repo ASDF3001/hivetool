@@ -67,6 +67,8 @@ HIVETOOL_MOCK=1  python -m hivetool.cli stats Notch bed   # mock (default, works
 HIVETOOL_MOCK=0  python -m hivetool.cli stats Notch bed   # real API
 ```
 
+**Important**: Running without the env var uses **mock (dummy) data**. To see real stats you **must** set `HIVETOOL_MOCK=0`. While running in mock mode, the `stats` / `watch` title shows a `[MOCK]` badge so it's obvious at a glance.
+
 ### Rate limiting
 
 The PlayHive API rate-limits per `game + player` combination. Rapid repeated requests to the same combination return `429 Too Many Attempts` and lock you out for a while. Normal interactive use (a human running `stats`) is fine; space out requests when scripting.

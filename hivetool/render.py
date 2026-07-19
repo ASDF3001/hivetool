@@ -24,7 +24,7 @@ def _delta_text(cur: int, prev: int | None) -> str:
     return f"{text} [{color}]({sign}{delta:,})[/]"
 
 
-def render_stats(stats: PlayerStats, diff: PlayerStats | None = None) -> Panel:
+def render_stats(stats: PlayerStats, diff: PlayerStats | None = None, mock: bool = False) -> Panel:
     """戦績を Panel + Table で表示。diff があれば差分を色付きで付記する。
 
     - 共通フィールド + モード別フィールドを stats.fields() から表示
@@ -32,9 +32,9 @@ def render_stats(stats: PlayerStats, diff: PlayerStats | None = None) -> Panel:
     - ヘッダーに増加項目のサマリーを表示
     """
     prev_map = dict(diff.fields()) if diff is not None else {}
-    table = Table(show_header=False, box=None, padding=(0, 2))
-    table.add_column(style="bold cyan")
-    table.add_column(justify="right")
+    table = Table(show_header=False, box=None, padding=(0, 2), expand=True)
+    table.add_column(style="bold cyan", width=18)
+    table.add_column(justify="right", style="bold")
 
     # 共通フィールド（全モード累計）
     common_labels = {label for label, _ in COMMON_FIELDS}
@@ -51,7 +51,7 @@ def render_stats(stats: PlayerStats, diff: PlayerStats | None = None) -> Panel:
     if mode_fields:
         section_label = GAME_LABELS.get(stats.game.lower(), stats.game.upper())
         table.add_section()
-        table.add_row(f"[dim]{section_label} 専用統計[/]", "")
+        table.add_row(f"[bold yellow]{section_label} 専用統計[/]", "")
         for label, value in stats.fields():
             if label in common_labels:
                 continue
@@ -60,12 +60,21 @@ def render_stats(stats: PlayerStats, diff: PlayerStats | None = None) -> Panel:
                 prev = next((v for l, v in diff.fields() if l == label), None)
             table.add_row(label, _delta_text(value, prev))
 
-    # 計算値
-    table.add_row("KDR", _calc_delta(stats.kdr, diff.kdr if diff else None, "{:.2f}"))
-    table.add_row("Win Rate", _calc_delta(stats.win_rate, diff.win_rate if diff else None, "{:.1f}%"))
+    # 計算値（強調）
+    table.add_section()
+    table.add_row(
+        "[bold]KDR[/]",
+        _calc_delta(stats.kdr, diff.kdr if diff else None, "[bold]{:.2f}[/]"),
+    )
+    table.add_row(
+        "[bold]Win Rate[/]",
+        _calc_delta(stats.win_rate, diff.win_rate if diff else None, "[bold]{:.1f}%[/]"),
+    )
 
     title = f"[bold]{stats.player}[/] — {GAME_LABELS.get(stats.game.lower(), stats.game.upper())}"
-    footer = f"取得: {datetime.now().strftime('%H:%M:%S')}"
+    if mock:
+        title += " [dim yellow][MOCK][/]"
+    footer = f"[dim]取得: {datetime.now().strftime('%H:%M:%S')}[/]"
 
     if diff is not None:
         summary = _diff_summary(stats, diff)
@@ -74,6 +83,7 @@ def render_stats(stats: PlayerStats, diff: PlayerStats | None = None) -> Panel:
         Group(table, footer),
         title=title,
         border_style="magenta",
+        padding=(1, 2),
     )
 
 
@@ -81,28 +91,32 @@ def _calc_delta(cur: float, prev: float | None, fmt: str) -> str:
     text = fmt.format(cur)
     if prev is None:
         return text
-    if fmt.format(cur) == fmt.format(prev):
-        return text
     delta = cur - prev
+    # 表示桁での丸め誤差を除き、実質変化なしならそのまま表示
+    if abs(delta) < 1e-9:
+        return text
     color = "green" if delta > 0 else "red"
     sign = "+" if delta > 0 else ""
     return f"{text} [{color}]({sign}{fmt.format(delta)})[/]"
 
 
 def _diff_summary(cur: PlayerStats, prev: PlayerStats) -> str:
-    """増加した項目を1行サマリーにまとめる（なければ '変化なし'）。"""
+    """増加/減少を色分けした1行サマリー（なければ '変化なし'）。"""
     cmap = dict(cur.fields())
     pmap = dict(prev.fields())
-    parts: list[str] = []
+    ups: list[str] = []
+    downs: list[str] = []
     for label, value in cmap.items():
         d = value - pmap.get(label, value)
-        if d != 0:
-            color = "green" if d > 0 else "red"
-            sign = "+" if d > 0 else ""
-            parts.append(f"[{color}]{label} {sign}{d:,}[/{color}]")
-    if not parts:
+        if d == 0:
+            continue
+        if d > 0:
+            ups.append(f"[green]▲{label} +{d:,}[/]")
+        else:
+            downs.append(f"[red]▼{label} {d:,}[/]")
+    if not ups and not downs:
         return "[dim]変化なし[/]"
-    return "Δ " + "  ".join(parts)
+    return "  ".join(ups + downs)
 
 
 def render_leaderboard(rows: list[dict]) -> Table:
