@@ -4,6 +4,7 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="${REPO_DIR%/}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 echo "=== hivetool インストーラー ==="
@@ -41,6 +42,10 @@ fi
 echo "[情報] pipx: ${PIPX_BIN:-pipx}"
 
 # --- インストール ---
+if [ ! -f "$REPO_DIR/pyproject.toml" ]; then
+  echo "[エラー] $REPO_DIR に pyproject.toml が見つかりません。install.sh をリポジトリ内で実行してください。" >&2
+  exit 1
+fi
 echo "[情報] pipx で hivetool をインストール..."
 "$PIPX_BIN" install "$REPO_DIR" --force
 
