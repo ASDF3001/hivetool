@@ -3,7 +3,7 @@
 # 使い方: bash install.sh
 set -euo pipefail
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || REPO_DIR="$(pwd)"
 REPO_DIR="${REPO_DIR%/}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 

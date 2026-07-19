@@ -38,6 +38,29 @@ cd hivetool
 bash install.sh
 ```
 
+### Already have an older version? (update)
+
+The `hivetool update` command was added in **v0.1.0+**. Older installs don't have it, so use one of these to pull the latest:
+
+**A. Force reinstall via one-liner (recommended)**
+
+`bash <(curl ...)` process substitution breaks `install.sh`'s path resolution, so download it to a file first:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ASDF3001/hivetool/master/install.sh -o /tmp/install.sh
+bash /tmp/install.sh
+```
+
+**B. If you already cloned the repo**
+
+```bash
+cd ~/hivetool         # where you cloned it
+git pull origin master  # get latest
+bash install.sh          # or: pipx install . --force
+```
+
+After updating, `hivetool update` alone will suffice from then on.
+
 `install.sh` installs via pipx and, after a confirmation prompt, appends the pipx PATH to your shell rc files (`.zshrc`/`.bashrc`).
 To do it manually:
 

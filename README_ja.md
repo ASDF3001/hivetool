@@ -36,6 +36,29 @@ cd hivetool
 bash install.sh
 ```
 
+### すでに古い版が入っている場合（アップデート）
+
+`hivetool update` コマンドは **v0.1.0 以降** で追加されました。それより古い版には存在しないため、以下のいずれかで最新を持ってきてください。
+
+**A. ワンライナーで強制再インストール（推奨）**
+
+`bash <(curl ...)` のプロセス置換では `install.sh` が自身の場所を正しく解決できないため、いったんファイルに落としてから実行します:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ASDF3001/hivetool/master/install.sh -o /tmp/install.sh
+bash /tmp/install.sh
+```
+
+**B. すでにクローン済みの場合**
+
+```bash
+cd ~/hivetool            # クローンしたディレクトリ
+git pull origin master   # 最新を取得
+bash install.sh           # または: pipx install . --force
+```
+
+更新後は `hivetool update` だけで今後は済むようになります。
+
 上記で pipx 経由でインストールされ、シェルの設定ファイル（`.zshrc`/`.bashrc`）への PATH 登録も確認付きで行われます。
 手動で行う場合:
 
